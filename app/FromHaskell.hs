@@ -2,15 +2,16 @@ module FromHaskell where
 
 import Text.Parsec
 import Text.Parsec.String
+import qualified Control.Applicative as A
 
 data Vals = Strj String | Intj String | Charj Char | Boolj String | Letterj String | Mathj Vals String Vals | IfThenElse Vals Vals Vals | Array [Vals] | Param String
-            | Map Vals Vals Vals | Length Vals | Filter Vals Vals Vals | Lines Vals | Words Vals
+            | Map Vals Vals Vals | Length Vals | Filter Vals Vals Vals | Lines Vals | Words Vals | Guards [(Vals, Vals)]
             deriving(Eq,Show)
 
 type FunName = String
 
 
-data Token = Func FunName [Vals] Vals | JsFun String [Vals] | Print Vals | Err Vals | Mapm_ Vals Token Vals
+data Token = Func FunName [Vals] Vals | JsFun String [Vals] | Print Vals | Err Vals | Mapm_ Vals Token Vals | GuardsFunc FunName [Vals] Vals
             deriving(Eq,Show)
 
 strParser :: Parser Vals
@@ -72,3 +73,10 @@ linesParser = Lines <$> (string "lines" >> many1 space >> valsParser)
 
 wordsParser :: Parser Vals
 wordsParser = Words <$> (string "words" >> many1 space >> valsParser)
+
+guardsFuncParser :: Parser Token
+guardsFuncParser = GuardsFunc <$> (many1 letter <* spaces) <*> (paramParser `sepBy` (char ',')) <*> (spaces >> guardsParser)
+
+guardsParser :: Parser Vals
+guardsParser = Guards <$> ((A.liftA2 (,) (spaces >> char '|' >> spaces >> ((Letterj <$> (string "otherwise")) <|> valsParser)) (spaces >> char '=' >> spaces >> valsParser)) `sepBy` (string " &"))
+

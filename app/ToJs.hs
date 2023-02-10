@@ -12,6 +12,7 @@ hsToJs (JsFun name params) = name++"("++(intercalate ", " (map (\p -> []++(valTo
 hsToJs (Print v) = "console.log("++(valToJs $ v)++")"
 hsToJs (Err v) = "console.error("++(valToJs $ v)++")"
 hsToJs (Mapm_ param io val) = (valToJs $ val)++".forEach("++(valToJs $ param)++" => "++(hsToJs $ (ioParam io param))++")"
+hsToJs (GuardsFunc name params gs) = "const "++name++" = ("++(intercalate ", " (map (\p -> []++(valToJs $ p)) params))++") => {\n"++(valToJs gs)++"}\n"
 hsToJs _ = ""
 
 valToJs :: Vals -> String
@@ -30,12 +31,19 @@ valToJs (Map param op val) = (valToJs $ val)++".map("++(valToJs $ param)++" => "
 valToJs (Filter param op val) = (valToJs $ val)++".filter("++(valToJs $ param)++" => "++ (valToJs $ (isParam op param))++")"
 valToJs (Lines s) = (valToJs $ s)++".split(\"\\n\")"
 valToJs (Words s) = (valToJs $ s)++".split(\" \")"
+valToJs (Guards []) = error $ "syntax error"
+valToJs (Guards vals) = "\tif("++(valToJs $ fst $ currGd)++"){\n\t\treturn "++(valToJs $ snd $ currGd)++";\n\t}\n"++(concat $ map getGuard (tail $ vals))
+                       where currGd=head $ vals
 valToJs _ = ""
 
 ioParam :: Token -> Vals -> Token
 ioParam (Print v) param = Print (isParam v param) 
 ioParam (Err v) param = Err (isParam v param) 
 ioParam a _ = a
+
+getGuard :: (Vals,Vals) -> String
+getGuard (Letterj "otherwise",b)= "\telse{\n\t\treturn "++(valToJs $ b)++";\n\t}\n"
+getGuard guard= "\telse if("++(valToJs $ fst $ guard)++"){\n\t\treturn "++(valToJs $ snd $ guard)++";\n\t}\n"
 
 isParam :: Vals -> Vals -> Vals
 isParam (Mathj (Letterj a) b c) (Param d)|a==d=(Mathj (Param a) b c)
