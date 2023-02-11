@@ -31,6 +31,11 @@ valToJs (Map param op val) = (valToJs $ val)++".map("++(valToJs $ param)++" => "
 valToJs (Filter param op val) = (valToJs $ val)++".filter("++(valToJs $ param)++" => "++ (valToJs $ (isParam op param))++")"
 valToJs (Lines s) = (valToJs $ s)++".split(\"\\n\")"
 valToJs (Words s) = (valToJs $ s)++".split(\" \")"
+valToJs (Reverse s) = (valToJs $ s)++".reverse()"
+valToJs (Sort s) = (valToJs $ s)++".split()"
+valToJs (Head s) = (valToJs $ s)++".shift()"
+valToJs (Tail s) = (valToJs $ s)++".slice(1)"
+valToJs (Brackets s) = "("++(valToJs $ s)++")"
 valToJs (Guards []) = error $ "syntax error"
 valToJs (Guards vals) = "\tif("++(valToJs $ fst $ currGd)++"){\n\t\treturn "++(valToJs $ snd $ currGd)++";\n\t}\n"++(concat $ map getGuard (tail $ vals))
                        where currGd=head $ vals
