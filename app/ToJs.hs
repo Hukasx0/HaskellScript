@@ -13,6 +13,8 @@ hsToJs (Print v) = "console.log("++(valToJs $ v)++")"
 hsToJs (Err v) = "console.error("++(valToJs $ v)++")"
 hsToJs (Mapm_ param io val) = (valToJs $ val)++".forEach("++(valToJs $ param)++" => "++(hsToJs $ (ioParam io param))++")"
 hsToJs (GuardsFunc name params gs) = "const "++name++" = ("++(intercalate ", " (map (\p -> []++(valToJs $ p)) params))++") => {\n"++(valToJs gs)++"}\n"
+hsToJs (Let n v) = "let "++n++" = "++(valToJs $ v)
+hsToJs (JsCode code) = code
 hsToJs _ = ""
 
 valToJs :: Vals -> String
@@ -22,6 +24,7 @@ valToJs (Letterj l) = l++"()"
 valToJs (Boolj b) = b
 valToJs (Param p) = p
 valToJs (Length v) = (valToJs $ v)++".length"
+valToJs (Subs a i) = (valToJs $ a)++".at("++i++")"
 valToJs (Array a) = "["++(intercalate "," (map valToJs a))++"]"
 valToJs (IfThenElse condition tru fal) = (valToJs $ condition)++" ? "++(valToJs $ tru)++" : "++(valToJs $ fal)
 valToJs (Mathj a "/=" b) = (valToJs $ a)++"!="++(valToJs $ b)  
@@ -30,12 +33,19 @@ valToJs (Mathj a x b) = (valToJs $ a)++x++(valToJs $ b)
 valToJs (Map param op val) = (valToJs $ val)++".map("++(valToJs $ param)++" => "++ (valToJs $ (isParam op param))++")"
 valToJs (Filter param op val) = (valToJs $ val)++".filter("++(valToJs $ param)++" => "++ (valToJs $ (isParam op param))++")"
 valToJs (Lines s) = (valToJs $ s)++".split(\"\\n\")"
+valToJs (Unlines s) = (valToJs $ s)++".join(\"\\n\")"
+valToJs (Unwords s) = (valToJs $ s)++".join(\" \")"
+valToJs (Mappend x y) = (valToJs $ x)++".concat("++(valToJs $ y)++")"
 valToJs (Words s) = (valToJs $ s)++".split(\" \")"
 valToJs (Reverse s) = (valToJs $ s)++".reverse()"
 valToJs (Sort s) = (valToJs $ s)++".split()"
 valToJs (Head s) = (valToJs $ s)++".shift()"
 valToJs (Tail s) = (valToJs $ s)++".slice(1)"
+valToJs (Last s) = (valToJs $ s)++".slice(-1)"
+valToJs (Take n s) = (valToJs $ s)++".slice(0,"++n++")"
+valToJs (Appo s) = (valToJs $ s)
 valToJs (Brackets s) = "("++(valToJs $ s)++")"
+valToJs (JsVal s) = s
 valToJs (Guards []) = error $ "syntax error"
 valToJs (Guards vals) = "\tif("++(valToJs $ fst $ currGd)++"){\n\t\treturn "++(valToJs $ snd $ currGd)++";\n\t}\n"++(concat $ map getGuard (tail $ vals))
                        where currGd=head $ vals

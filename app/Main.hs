@@ -8,9 +8,10 @@ import System.Directory
 import FromHaskell
 import ToJs
 
+
 compileHs :: String -> FilePath -> IO ()
 compileHs fData fName = do
-    let parsed = parse (spaces >> many ((try funcParser <|> try printParser <|>try errorParser <|>mapmParser<|>try guardsFuncParser<|> try jsFunParser)  <* spaces) <* eof) fName fData
+    let parsed = parse (spaces >> many ((try jsCodeParser <|>try letParser <|> try funcParser <|> try printParser <|>try errorParser <|>mapmParser<|>try guardsFuncParser<|> try jsFunParser)  <* spaces) <* eof) fName fData
     print $ parsed
     case parsed of
         Left err -> (print err)
@@ -22,7 +23,7 @@ compileHs fData fName = do
 compileJhs :: String -> FilePath -> IO ()
 compileJhs fData fName = do
     print $ middle
-    let parsed = parse (spaces >> many ((try funcParser <|> try printParser <|>try errorParser <|>mapmParser<|>try guardsFuncParser<|> try jsFunParser) <* spaces) <* eof) fName (concat $ middle)
+    let parsed = parse (spaces >> many ((try jsCodeParser <|>try letParser <|> try funcParser <|> try printParser <|>try errorParser <|>mapmParser<|>try guardsFuncParser<|> try jsFunParser) <* spaces) <* eof) fName (concat $ middle)
     print $ parsed
     case parsed of
         Left err -> (print err)
