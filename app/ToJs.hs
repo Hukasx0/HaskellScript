@@ -15,6 +15,12 @@ hsToJs (Mapm_ param io val) = (valToJs $ val)++".forEach("++(valToJs $ param)++"
 hsToJs (GuardsFunc name params gs) = "const "++name++" = ("++(intercalate ", " (map (\p -> []++(valToJs $ p)) params))++") => {\n"++(valToJs gs)++"}\n"
 hsToJs (Let n v) = "let "++n++" = "++(valToJs $ v)
 hsToJs (JsCode code) = code
+hsToJs (Comment _) = ""
+hsToJs (LineComment _) = ""
+hsToJs (JsComment c) ="/*"++c++"*/"
+hsToJs (JsLComment c) = "//"++c
+hsToJs (Include _) = ""
+hsToJs (JsImport s) = s
 hsToJs _ = ""
 
 valToJs :: Vals -> String

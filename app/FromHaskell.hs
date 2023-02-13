@@ -12,7 +12,8 @@ data Vals = Strj String | Intj String | Charj Char | Boolj String | Letterj Stri
 type FunName = String
 
 
-data Token = Func FunName [Vals] Vals | JsFun String [Vals] | Print Vals | Err Vals | Mapm_ Vals Token Vals | GuardsFunc FunName [Vals] Vals | Let String Vals | JsCode String
+data Token = Func FunName [Vals] Vals | JsFun String [Vals] | Print Vals | Err Vals | Mapm_ Vals Token Vals | GuardsFunc FunName [Vals] Vals | Let String Vals | JsCode String | LineComment String | Comment String
+            | JsLComment String | JsComment String | Include String | JsImport String
             deriving(Eq,Show)
 
 strParser :: Parser Vals
@@ -125,3 +126,21 @@ jsCodeParser = JsCode <$> (string "${" >> many1 (noneOf "\\") <* string "\\};")
 
 jsValParser :: Parser Vals
 jsValParser = JsVal <$> (string "${" >> many1 (noneOf "\\") <* string "\\};")
+
+lineCommentParser :: Parser Token
+lineCommentParser = LineComment <$> (string "--" >> many (noneOf "\n"))
+
+jsLCommentParser :: Parser Token
+jsLCommentParser = JsLComment <$> (string "//" >> many (noneOf "\n"))
+
+commentParser :: Parser Token
+commentParser = Comment <$> ( between (string "{-") (string "-}") (many (noneOf "-}")) )
+
+jsCommentParser :: Parser Token
+jsCommentParser = JsComment <$> ( between (string "/*") (string "*/") (many (noneOf "*/")) )
+
+includeParser :: Parser Token
+includeParser = Include <$> (string "include" >> many1 space >> (many (noneOf "\n")))
+
+jsImportParser :: Parser Token
+jsImportParser = JsImport <$> ( between (string "<~~~~~>") (string "<~~~~~/>") (many (noneOf "~")) )
