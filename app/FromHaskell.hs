@@ -6,7 +6,7 @@ import qualified Control.Applicative as A
 
 data Vals = Strj String | Intj String | Charj Char | Boolj String | Letterj String | Mathj Vals String Vals | IfThenElse Vals Vals Vals | Array [Vals] | Param String
             | Map Vals Vals Vals | Length Vals | Filter Vals Vals Vals | Lines Vals | Words Vals | Guards [(Vals, Vals)] | Reverse Vals | Sort Vals | Head Vals | Tail Vals
-            | Brackets Vals | Last Vals | Unlines Vals | Unwords Vals | Mappend Vals Vals | Appo Vals | Subs Vals String | JsVal String | Take String Vals
+            | Brackets Vals | Last Vals | Unlines Vals | Unwords Vals | Mappend Vals Vals | Appo Vals | Subs Vals String | JsVal String | Take String Vals | Sum Vals | LF String Vals
             deriving(Eq,Show)
 
 type FunName = String
@@ -31,6 +31,9 @@ boolParser = Boolj <$> ((string "true") <|> (string "false"))
 letterParser :: Parser Vals
 letterParser = Letterj <$> (many1 letter)
 
+letterFunParser :: Parser Vals
+letterFunParser = LF <$> (many1 letter) <*> (many1 space >> appoParser)
+
 arrayParser :: Parser Vals
 arrayParser = Array <$> (char '[' >> spaces >> (valsParser `sepBy` (char ',')) <* spaces <* char ']')
 
@@ -38,7 +41,7 @@ paramParser :: Parser Vals
 paramParser = Param <$> many1 letter
 
 mathParser :: Parser Vals
-mathParser = Mathj <$> (try strParser <|> try intParser <|> try charParser <|> try boolParser <|>try arrayParser<|>try letterParser <|> bracketsParser) <*> (spaces >> (try (string "++")<|> try (string "+") <|>try (string "-") <|>try (string "*") <|>try (string "/") <|>try (string "==") <|>try (string "/=") <|> try (string ">") <|> try (string "<") <|> try (string "<=") <|> try (string ">=")) <* spaces) <*> (try strParser <|> try intParser <|> try charParser <|> try boolParser <|>try arrayParser<|>letterParser) 
+mathParser = Mathj <$> (try strParser <|> try intParser <|> try charParser <|> try boolParser <|>try arrayParser<|>try letterParser <|> bracketsParser) <*> (spaces >> (try (string "++")<|> try (string "+") <|>try (string "-") <|>try (string "*") <|>try (string "/") <|>try (string "==") <|>try (string "/=") <|> try (string ">") <|> try (string "<") <|> try (string "<=") <|> try (string ">=")) <* spaces) <*> (try strParser <|> try intParser <|> try charParser <|> try boolParser <|>try arrayParser<|>try letterParser <|> bracketsParser)
 
 jsFunParser :: Parser Token
 jsFunParser = JsFun <$> (string "js{" >> spaces >> many1 (noneOf " ")) <*>  (spaces >> (valsParser `sepBy` (char ' ')) <* spaces <* char '}')
@@ -47,7 +50,7 @@ ifThenElseParser :: Parser Vals
 ifThenElseParser = IfThenElse <$> (string "if" >> spaces >> valsParser) <*> (spaces >> string "then" >> spaces >> valsParser) <*> (spaces >> string "else" >> spaces >> valsParser)
 
 valsParser :: Parser Vals
-valsParser =try mathParser <|> try subsParser <|> try ifThenElseParser <|> try mapParser<|>try appoParser<|>try mappendParser <|>try jsValParser<|> try filterParser <|>try headParser<|> try tailParser<|>try takeParser<|>try lastParser<|>try linesParser<|>try unlinesParser<|>try unwordsParser<|> try wordsParser<|>try lengthParser <|> try reverseParser <|> try sortParser <|> try strParser <|>try bracketsParser<|> try intParser <|> try charParser <|> try boolParser <|>try letterParser <|>arrayParser
+valsParser =try mathParser <|> try subsParser <|> try ifThenElseParser <|> try mapParser<|>try appoParser<|>try mappendParser <|>try jsValParser<|> try filterParser <|>try headParser<|> try tailParser<|>try takeParser<|>try lastParser<|>try linesParser<|>try unlinesParser<|>try sumParser<|>try unwordsParser<|> try wordsParser<|>try lengthParser <|> try reverseParser <|> try sortParser <|> try strParser <|>try bracketsParser<|> try intParser <|> try charParser <|> try boolParser <|> try letterFunParser<|>try letterParser <|>arrayParser
 
 funcParser :: Parser Token
 funcParser = Func <$> (many1 letter <* spaces) <*> (paramParser `sepBy` (char ',')) <*> (spaces >> char '=' >> spaces >> valsParser)
@@ -144,3 +147,6 @@ includeParser = Include <$> (string "include" >> many1 space >> (many (noneOf "\
 
 jsImportParser :: Parser Token
 jsImportParser = JsImport <$> ( between (string "<~~~~~>") (string "<~~~~~/>") (many (noneOf "~")) )
+
+sumParser :: Parser Vals
+sumParser = Sum <$> (string "sum" >> many1 space >> valsParser)

@@ -7,7 +7,7 @@ bufferToJs :: [String] -> String
 bufferToJs b = intercalate "\n" b
 
 hsToJs :: Token -> String
-hsToJs (Func name params val) = "const "++name++" = ("++(intercalate ", " (map (\p -> []++(valToJs $ p)) params))++") => "++(valToJs $ val)
+hsToJs (Func name params val) = "const "++name++" = ("++(intercalate ", " (map (\p -> []++(valToJs $ p)) params))++") => "++(valToJs $ (manyParams val params))
 hsToJs (JsFun name params) = name++"("++(intercalate ", " (map (\p -> []++(valToJs $ p)) params))++")"
 hsToJs (Print v) = "console.log("++(valToJs $ v)++")"
 hsToJs (Err v) = "console.error("++(valToJs $ v)++")"
@@ -15,13 +15,13 @@ hsToJs (Mapm_ param io val) = (valToJs $ val)++".forEach("++(valToJs $ param)++"
 hsToJs (GuardsFunc name params gs) = "const "++name++" = ("++(intercalate ", " (map (\p -> []++(valToJs $ p)) params))++") => {\n"++(valToJs gs)++"}\n"
 hsToJs (Let n v) = "let "++n++" = "++(valToJs $ v)
 hsToJs (JsCode code) = code
-hsToJs (Comment _) = ""
+hsToJs (Comment _) = []
 hsToJs (LineComment _) = ""
 hsToJs (JsComment c) ="/*"++c++"*/"
 hsToJs (JsLComment c) = "//"++c
 hsToJs (Include _) = ""
 hsToJs (JsImport s) = s
-hsToJs _ = ""
+hsToJs _ = []
 
 valToJs :: Vals -> String
 valToJs (Intj i) = i
@@ -48,10 +48,12 @@ valToJs (Sort s) = (valToJs $ s)++".split()"
 valToJs (Head s) = (valToJs $ s)++".shift()"
 valToJs (Tail s) = (valToJs $ s)++".slice(1)"
 valToJs (Last s) = (valToJs $ s)++".slice(-1)"
+valToJs (Sum s) = (valToJs $ s)++".reduce((a, b) => a + b, 0)"
 valToJs (Take n s) = (valToJs $ s)++".slice(0,"++n++")"
 valToJs (Appo s) = (valToJs $ s)
 valToJs (Brackets s) = "("++(valToJs $ s)++")"
 valToJs (JsVal s) = s
+valToJs (LF f v) = f++"("++(valToJs $ v)++")"
 valToJs (Guards []) = error $ "syntax error"
 valToJs (Guards vals) = "\tif("++(valToJs $ fst $ currGd)++"){\n\t\treturn "++(valToJs $ snd $ currGd)++";\n\t}\n"++(concat $ map getGuard (tail $ vals))
                        where currGd=head $ vals
@@ -66,17 +68,26 @@ getGuard :: (Vals,Vals) -> String
 getGuard (Letterj "otherwise",b)= "\telse{\n\t\treturn "++(valToJs $ b)++";\n\t}\n"
 getGuard guard= "\telse if("++(valToJs $ fst $ guard)++"){\n\t\treturn "++(valToJs $ snd $ guard)++";\n\t}\n"
 
+manyParams :: Vals -> [Vals] -> Vals
+manyParams val [] = val
+manyParams val params = manyParams (isParam val (head $ params)) (tail $ params)
+
 isParam :: Vals -> Vals -> Vals
-isParam (Mathj (Letterj a) b c) (Param d)|a==d=(Mathj (Param a) b c)
-                                     |otherwise=(Mathj (Letterj a) b c)
-isParam (Mathj a b (Letterj c)) (Param d)|c==d=(Mathj a b (Param c))
-                                     |otherwise=(Mathj a b (Letterj c))
 isParam (Letterj a) (Param b)|a==b=(Param a)
                              |otherwise=(Letterj a)
-isParam (Length (Letterj a)) (Param b)|a==b=(Length (Param a))
-                                      |otherwise=(Length (Letterj a))
-isParam (Lines (Letterj a)) (Param b)|a==b=(Lines (Param a))
-                                      |otherwise=(Lines (Letterj a))
-isParam (Words (Letterj a)) (Param b)|a==b=(Words (Param a))
-                                      |otherwise=(Words (Letterj a))
+isParam (Mathj a b c) (Param d) = (Mathj (isParam a (Param d)) b (isParam c (Param d)))
+isParam (Length a) (Param b) = (Length (isParam a (Param b))) 
+isParam (Lines a) (Param b) = (Lines (isParam a (Param b))) 
+isParam (Words a) (Param b) = (Words (isParam a (Param b))) 
+isParam (Reverse a) (Param b) = (Reverse (isParam a (Param b))) 
+isParam (Sort a) (Param b) = (Sort (isParam a (Param b))) 
+isParam (Head a) (Param b) = (Head (isParam a (Param b))) 
+isParam (Tail a) (Param b) = (Tail (isParam a (Param b))) 
+isParam (Last a) (Param b) = (Last (isParam a (Param b))) 
+isParam (Sum a) (Param b) = (Sum (isParam a (Param b))) 
+isParam (Take c a) (Param b) = (Take c (isParam a (Param b))) 
+isParam (Brackets a) (Param b) = (Brackets (isParam a (Param b))) 
+isParam (Appo v) (Param b) = (Appo (isParam v (Param b)))
+isParam (LF n v) (Param b) = (LF n (isParam v (Param b)))
+isParam (Map p o v) (Param b) = (Map p o (isParam v (Param b)))
 isParam a _ = a
